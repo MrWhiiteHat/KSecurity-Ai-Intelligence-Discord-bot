@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Server {
+  id                 String   @id @default(uuid())
+  discordId          String   @unique
+  name               String
+  moderationRoleId   String?
+  createdAt          DateTime @default(now())
+  users              User[]
+  messages           Message[]
+  config             Config?
+}
+
+model User {
+  id          String   @id @default(uuid())
+  discordId   String
+  username    String
+  serverId    String
+  trustScore  Int      @default(50)
+  createdAt   DateTime @default(now())
+  messages    Message[]
+  server      Server   @relation(fields: [serverId], references: [id])
+
+  @@unique([discordId, serverId])
+  @@index([serverId])
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  serverId   String
+  userId     String
+  content    String
+  riskScore  Int      @default(0)
+  action     String   @default("allow")
+  createdAt  DateTime @default(now())
+  server     Server   @relation(fields: [serverId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+  threats    Threat[]
+
+  @@index([serverId, createdAt])
+  @@index([userId])
+}
+
+model Threat {
+  id         String   @id @default(uuid())
+  messageId  String
+  type       String
+  severity   String
+  reasoning  String
+  detectedAt DateTime @default(now())
+  message    Message  @relation(fields: [messageId], references: [id])
+
+  @@index([type, detectedAt])
+}
+
+model Config {
+  serverId         String  @id
+  aiWeight         Float   @default(0.5)
+  urlWeight        Float   @default(0.3)
+  behaviorWeight   Float   @default(0.2)
+  deleteThreshold  Int     @default(80)
+  warnThreshold    Int     @default(50)
+  server           Server  @relation(fields: [serverId], references: [id])
+}
