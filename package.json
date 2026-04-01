@@ -1,0 +1,14 @@
+{
+  "name": "discord-threat-detector",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace=packages/backend",
+    "dev:bot": "npm run dev --workspace=packages/bot",
+    "dev:dashboard": "npm run dev --workspace=packages/dashboard",
+    "build": "npm run build --workspaces",
+    "start:backend": "npm run start --workspace=packages/backend",
+    "start:bot": "npm run start --workspace=packages/bot",
+    "start:dashboard": "npm run start --workspace=packages/dashboard"
+  }
+}

@@ -1,0 +1,46 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: threat_detector
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./packages/backend
+    ports:
+      - "3001:3001"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/threat_detector?schema=public
+      PORT: 3001
+      JWT_SECRET: dev-jwt-secret
+      API_KEY: dev-api-key
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - postgres
+
+  bot:
+    build: ./packages/bot
+    environment:
+      DISCORD_BOT_TOKEN: ${DISCORD_BOT_TOKEN}
+      BACKEND_URL: http://backend:3001
+      BOT_API_KEY: dev-api-key
+    depends_on:
+      - backend
+
+  dashboard:
+    build: ./packages/dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: http://backend:3001
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
