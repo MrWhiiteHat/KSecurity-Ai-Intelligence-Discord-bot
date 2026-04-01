@@ -3,12 +3,25 @@
   "private": true,
   "workspaces": ["packages/*"],
   "scripts": {
+    "setup": "npm run setup:env && npm install && npm run db:generate --workspace=packages/backend && npm run db:push --workspace=packages/backend",
+    "setup:env": "node scripts/setup-env.js",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:dashboard\"",
     "dev:backend": "npm run dev --workspace=packages/backend",
     "dev:bot": "npm run dev --workspace=packages/bot",
     "dev:dashboard": "npm run dev --workspace=packages/dashboard",
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspaces --if-present",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:dashboard\"",
     "start:backend": "npm run start --workspace=packages/backend",
     "start:bot": "npm run start --workspace=packages/bot",
-    "start:dashboard": "npm run start --workspace=packages/dashboard"
+    "start:dashboard": "npm run start --workspace=packages/dashboard",
+    "db:migrate": "npm run db:migrate --workspace=packages/backend",
+    "db:push": "npm run db:push --workspace=packages/backend",
+    "db:generate": "npm run db:generate --workspace=packages/backend",
+    "db:studio": "npm run db:studio --workspace=packages/backend",
+    "db:reset": "npm run db:reset --workspace=packages/backend",
+    "deploy-commands": "npm run deploy-commands --workspace=packages/bot"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }

@@ -3,12 +3,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model Server {
-  id                 String   @id @default(uuid())
+  id                 String   @id @default(cuid())
   discordId          String   @unique
   name               String
   moderationRoleId   String?
@@ -19,7 +19,7 @@ model Server {
 }
 
 model User {
-  id          String   @id @default(uuid())
+  id          String   @id @default(cuid())
   discordId   String
   username    String
   serverId    String
@@ -33,7 +33,7 @@ model User {
 }
 
 model Message {
-  id         String   @id @default(uuid())
+  id         String   @id @default(cuid())
   serverId   String
   userId     String
   content    String
@@ -49,7 +49,7 @@ model Message {
 }
 
 model Threat {
-  id         String   @id @default(uuid())
+  id         String   @id @default(cuid())
   messageId  String
   type       String
   severity   String

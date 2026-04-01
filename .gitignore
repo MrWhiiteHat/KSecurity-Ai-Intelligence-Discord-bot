@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+packages/backend/.env
+packages/bot/.env
+packages/dashboard/.env.local
+
+# Build output
+packages/dashboard/.next/
+packages/backend/dist/
+packages/bot/dist/
+packages/backend/prisma/dev.db
+packages/backend/prisma/dev.db-journal
+
+# Logs
+*.log
+npm-debug.log*
