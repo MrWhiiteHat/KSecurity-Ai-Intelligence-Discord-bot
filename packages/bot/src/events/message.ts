@@ -48,10 +48,13 @@ export async function handleMessage(message: Message, client: Client) {
 
 async function handleDeleteAction(message: Message, result: any) {
   try {
+    const channel = message.channel;
     await message.delete();
 
     // Send alert to channel (MVP: simple message)
-    await message.channel.send({
+    if (!channel.isTextBased() || !('send' in channel)) return;
+
+    await channel.send({
       content: `**Threat Detected**\n` +
         `Message from ${message.author} was deleted.\n` +
         `Risk Score: **${result.riskScore}/100**\n` +
@@ -65,8 +68,11 @@ async function handleDeleteAction(message: Message, result: any) {
 
 async function handleWarnAction(message: Message, result: any) {
   try {
+    const channel = message.channel;
     // Send warning in channel
-    await message.channel.send({
+    if (!channel.isTextBased() || !('send' in channel)) return;
+
+    await channel.send({
       content: `${message.author}, your message was flagged as potentially suspicious.\n` +
         `Risk Score: **${result.riskScore}/100**\n` +
         `Please be cautious with links and requests.`,

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { authenticateJWT } from '../middleware/auth';
+import { authenticateApiKeyOrJWT } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import { prisma } from '../db/prisma';
 
@@ -16,7 +16,7 @@ const configSchema = z.object({
 
 export const configRouter = Router();
 
-configRouter.post('/', authenticateJWT, validate(configSchema), async (req, res) => {
+configRouter.post('/', authenticateApiKeyOrJWT, validate(configSchema), async (req, res) => {
   try {
     const { serverId, ...updates } = req.body;
 
@@ -53,7 +53,7 @@ configRouter.post('/', authenticateJWT, validate(configSchema), async (req, res)
   }
 });
 
-configRouter.get('/:serverId', authenticateJWT, async (req, res) => {
+configRouter.get('/:serverId', authenticateApiKeyOrJWT, async (req, res) => {
   try {
     const config = await prisma.config.findUnique({
       where: { serverId: req.params.serverId },

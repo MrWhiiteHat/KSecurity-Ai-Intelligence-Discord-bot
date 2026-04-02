@@ -34,7 +34,8 @@ const command: SlashCommand = {
     const guildId = interaction.guild?.id;
 
     if (!guildId) {
-      return interaction.editReply('This command can only be used in a server.');
+      await interaction.editReply('This command can only be used in a server.');
+      return;
     }
 
     try {
@@ -47,7 +48,8 @@ const command: SlashCommand = {
       } else {
         parsedValue = parseFloat(value);
         if (isNaN(parsedValue)) {
-          return interaction.editReply('Invalid value. Please provide a number.');
+          await interaction.editReply('Invalid value. Please provide a number.');
+          return;
         }
       }
 
@@ -62,6 +64,7 @@ const command: SlashCommand = {
     } catch (error) {
       console.error('Config error:', error);
       await interaction.editReply('Failed to update configuration.');
+      return;
     }
   },
 };

@@ -14,12 +14,19 @@ const command: SlashCommand = {
     try {
       const guild = interaction.guild;
       if (!guild) {
-        return interaction.editReply('This command can only be used in a server.');
+        await interaction.editReply('This command can only be used in a server.');
+        return;
       }
 
       // Register server in backend
       await apiClient.post('/config', {
         serverId: guild.id,
+        aiWeight: 0.5,
+        urlWeight: 0.3,
+        behaviorWeight: 0.2,
+        deleteThreshold: 80,
+        warnThreshold: 50,
+        moderationRoleId: null,
       });
 
       await interaction.editReply(
@@ -30,6 +37,7 @@ const command: SlashCommand = {
     } catch (error) {
       console.error('Setup error:', error);
       await interaction.editReply('Failed to initialize threat detection. Please try again.');
+      return;
     }
   },
 };
