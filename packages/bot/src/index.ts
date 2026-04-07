@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Collection } from 'discord.js';
+import { Client, GatewayIntentBits, Collection, REST, Routes } from 'discord.js';
 import http from 'http';
 import { config } from './config';
 import { setupCommands } from './commands/setup';
@@ -47,6 +47,42 @@ console.log('[bot] Intent configuration:', {
   hasApiKey: Boolean(config.apiKey),
 });
 
+async function registerSlashCommands(client: Client): Promise<void> {
+  if (!config.token) {
+    return;
+  }
+
+  const applicationId = client.application?.id || client.user?.id;
+  if (!applicationId) {
+    console.warn('[bot] Could not resolve Discord application ID for command registration.');
+    return;
+  }
+
+  const commandPayload = Array.from(client.commands.values()).map((command) => command.data.toJSON());
+  if (commandPayload.length === 0) {
+    console.warn('[bot] No slash commands available to register.');
+    return;
+  }
+
+  const rest = new REST({ version: '10' }).setToken(config.token);
+
+  try {
+    await rest.put(Routes.applicationCommands(applicationId), { body: commandPayload });
+    console.log(`[bot] Registered ${commandPayload.length} global slash command(s).`);
+  } catch (error) {
+    console.error('[bot] Failed to register global slash commands:', error);
+  }
+
+  for (const guild of client.guilds.cache.values()) {
+    try {
+      await rest.put(Routes.applicationGuildCommands(applicationId, guild.id), { body: commandPayload });
+      console.log(`[bot] Registered ${commandPayload.length} guild command(s) for ${guild.name} (${guild.id}).`);
+    } catch (error) {
+      console.error(`[bot] Failed to register guild commands for ${guild.name} (${guild.id}):`, error);
+    }
+  }
+}
+
 const client = new Client({
   intents,
 });
@@ -58,16 +94,31 @@ setupCommands(client);
 configCommands(client);
 
 // Event handlers
-client.on('ready', () => {
+client.on('clientReady', async () => {
   botReady = true;
   handleReady(client);
+
+  try {
+    await registerSlashCommands(client);
+  } catch (error) {
+    console.error('[bot] Command registration failed during startup:', error);
+  }
 });
 client.on('messageCreate', (message) => handleMessage(message, client));
 client.on('interactionCreate', async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
-  if (!command) return;
+  if (!command) {
+    console.warn(`[bot] Unknown command received: ${interaction.commandName}`);
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.reply({
+        content: 'This command is not available yet. Please try again in a few seconds.',
+        ephemeral: true,
+      });
+    }
+    return;
+  }
 
   try {
     await command.execute(interaction);
