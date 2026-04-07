@@ -38,6 +38,11 @@ async function start() {
     console.log(`Backend API running on port ${config.port}`);
   });
 
+  if (!config.databaseUrl) {
+    console.warn('Skipping initial database connection: DATABASE_URL is not configured.');
+    return;
+  }
+
   // Do not block health checks on initial DB availability during deploy.
   const maxAttempts = 12;
   const retryDelayMs = 5000;

@@ -12,7 +12,7 @@ export const config = {
 } as const;
 
 if (!config.databaseUrl) {
-  throw new Error('DATABASE_URL is required');
+  console.warn('[config] DATABASE_URL is not set. Database-backed endpoints will be unavailable until configured.');
 }
 
 if (!config.openaiApiKey) {
