@@ -55,6 +55,10 @@ function isKnownTokenKey(key: string): boolean {
     'bot_token',
     'token',
     'discord_bottoken',
+    'discord_auth_token',
+    'bot_auth_token',
+    'discord_secret',
+    'bot_secret',
   ].includes(normalized);
 }
 
@@ -98,13 +102,17 @@ function scoreDiscordTokenCandidate(key: string, value: string): number {
     'stripe',
   ];
 
-  if (excludedKeyHints.some((hint) => normalizedKey.includes(hint))) {
+  const hasDiscordTokenShape = looksLikeDiscordToken(normalizedValue);
+
+  // If value strongly matches Discord token format, keep it as candidate even
+  // if key includes generic auth-related words.
+  if (!hasDiscordTokenShape && excludedKeyHints.some((hint) => normalizedKey.includes(hint))) {
     return 0;
   }
 
   let score = 0;
 
-  if (looksLikeDiscordToken(normalizedValue)) {
+  if (hasDiscordTokenShape) {
     score += 120;
   }
 
@@ -225,6 +233,10 @@ const explicitToken = normalizeToken(
     pickEnv('BOT_TOKEN', 'bot_token'),
     pickEnv('TOKEN', 'token'),
     pickEnv('DISCORD_BOTTOKEN', 'discord_bottoken'),
+    pickEnv('DISCORD_AUTH_TOKEN', 'discord_auth_token'),
+    pickEnv('BOT_AUTH_TOKEN', 'bot_auth_token'),
+    pickEnv('DISCORD_SECRET', 'discord_secret'),
+    pickEnv('BOT_SECRET', 'bot_secret'),
   ])
 );
 
