@@ -29,9 +29,9 @@ export const config = {
 } as const;
 
 if (!config.token) {
-  throw new Error('DISCORD_BOT_TOKEN is required');
+  console.warn('[bot config] DISCORD_BOT_TOKEN is not set. Bot login will be skipped.');
 }
 
 if (!config.apiKey) {
-  throw new Error('BOT_API_KEY is required');
+  console.warn('[bot config] BOT_API_KEY is not set. Backend moderation calls will fail until configured.');
 }

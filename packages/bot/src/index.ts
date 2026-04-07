@@ -94,6 +94,10 @@ client.on('warn', (message) => {
   console.warn('[bot] Discord warning:', message);
 });
 
-client.login(config.token).catch((error) => {
-  console.error('[bot] Failed to login to Discord. Check token and privileged intents:', error);
-});
+if (!config.token) {
+  console.error('[bot] DISCORD_BOT_TOKEN is missing; bot will stay in health-only mode.');
+} else {
+  client.login(config.token).catch((error) => {
+    console.error('[bot] Failed to login to Discord. Check token and privileged intents:', error);
+  });
+}

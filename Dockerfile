@@ -1,15 +1,18 @@
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
-COPY packages/backend/package.json ./package.json
+COPY package*.json ./
+COPY packages/backend/package.json ./packages/backend/package.json
+COPY packages/bot/package.json ./packages/bot/package.json
+COPY packages/dashboard/package.json ./packages/dashboard/package.json
 RUN npm install
 
-COPY packages/backend ./
+COPY . .
 
-RUN npx prisma generate
-RUN npm run build
+RUN npx prisma generate --schema=packages/backend/prisma/schema.prisma
+RUN npm run build --workspaces --if-present
 
-EXPOSE 3001
+EXPOSE 8080
 
-CMD ["node", "safe-start.js"]
+CMD ["node", "scripts/railway-start.js"]
