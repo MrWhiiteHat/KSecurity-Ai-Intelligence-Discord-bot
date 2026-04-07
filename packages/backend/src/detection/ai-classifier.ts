@@ -7,7 +7,7 @@ export interface AiClassificationResult {
   reasoning: string;
 }
 
-const openai = new OpenAI({ apiKey: config.openaiApiKey });
+const openai = config.openaiApiKey ? new OpenAI({ apiKey: config.openaiApiKey }) : null;
 
 const SYSTEM_PROMPT = `You are a cybersecurity threat detection AI. Analyze Discord messages and classify them into one of three categories:
 
@@ -29,6 +29,14 @@ Consider these threat indicators:
 - Social engineering attempts`;
 
 export async function classifyMessage(content: string): Promise<AiClassificationResult> {
+  if (!openai) {
+    return {
+      category: 'suspicious',
+      confidence: 0.3,
+      reasoning: 'OPENAI_API_KEY is not configured; using fallback classification',
+    };
+  }
+
   try {
     const timeout = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('OpenAI classification timeout')), 3000);

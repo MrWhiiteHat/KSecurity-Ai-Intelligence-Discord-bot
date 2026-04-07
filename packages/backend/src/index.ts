@@ -34,17 +34,30 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 async function start() {
-  try {
-    await prisma.$connect();
-    console.log('Database connected');
+  app.listen(config.port, () => {
+    console.log(`Backend API running on port ${config.port}`);
+  });
 
-    app.listen(config.port, () => {
-      console.log(`Backend API running on port ${config.port}`);
-    });
-  } catch (error) {
-    console.error('Failed to start server:', error);
-    process.exit(1);
+  // Do not block health checks on initial DB availability during deploy.
+  const maxAttempts = 12;
+  const retryDelayMs = 5000;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      await prisma.$connect();
+      console.log('Database connected');
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Database connection attempt ${attempt}/${maxAttempts} failed: ${message}`);
+
+      if (attempt < maxAttempts) {
+        await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+      }
+    }
   }
+
+  console.error('Database connection retries exhausted; API remains up for health checks.');
 }
 
 start();

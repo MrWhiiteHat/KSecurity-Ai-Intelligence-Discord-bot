@@ -16,5 +16,5 @@ if (!config.databaseUrl) {
 }
 
 if (!config.openaiApiKey) {
-  throw new Error('OPENAI_API_KEY is required');
+  console.warn('[config] OPENAI_API_KEY is not set. AI classification will use fallback mode.');
 }
