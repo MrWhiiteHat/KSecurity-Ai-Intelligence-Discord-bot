@@ -34,6 +34,10 @@ function firstNonEmpty(values: Array<string | undefined>): string {
   return '';
 }
 
+function pickEnv(...keys: string[]): string {
+  return firstNonEmpty(keys.map((key) => process.env[key]));
+}
+
 const parsedPort = Number.parseInt(String(process.env.PORT ?? ''), 10);
 const healthPort = Number.isFinite(parsedPort) && parsedPort > 0 && parsedPort <= 65535
   ? parsedPort
@@ -41,17 +45,19 @@ const healthPort = Number.isFinite(parsedPort) && parsedPort > 0 && parsedPort <
 
 const resolvedToken = normalizeToken(
   firstNonEmpty([
-    process.env.DISCORD_BOT_TOKEN,
-    process.env.DISCORD_TOKEN,
-    process.env.BOT_TOKEN,
-    process.env.TOKEN,
+    pickEnv('DISCORD_BOT_TOKEN', 'discord_bot_token'),
+    pickEnv('DISCORD_TOKEN', 'discord_token'),
+    pickEnv('BOT_TOKEN', 'bot_token'),
+    pickEnv('TOKEN', 'token'),
+    pickEnv('DISCORD_BOTTOKEN', 'discord_bottoken'),
   ])
 );
 
 const resolvedApiKey = firstNonEmpty([
-  process.env.BOT_API_KEY,
-  process.env.API_KEY,
-  process.env.BACKEND_API_KEY,
+  pickEnv('BOT_API_KEY', 'bot_api_key'),
+  pickEnv('API_KEY', 'api_key'),
+  pickEnv('BACKEND_API_KEY', 'backend_api_key'),
+  pickEnv('BOT_APIKEY', 'bot_apikey'),
 ]);
 
 export const config = {
@@ -68,12 +74,24 @@ if (!process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_TOKEN) {
   console.warn('[bot config] Using DISCORD_TOKEN fallback for bot authentication.');
 }
 
+if (!process.env.DISCORD_BOT_TOKEN && !process.env.DISCORD_TOKEN && process.env.discord_bot_token) {
+  console.warn('[bot config] Using lowercase discord_bot_token fallback for bot authentication.');
+}
+
 if (!process.env.DISCORD_BOT_TOKEN && !process.env.DISCORD_TOKEN && process.env.BOT_TOKEN) {
   console.warn('[bot config] Using BOT_TOKEN fallback for bot authentication.');
 }
 
+if (!process.env.DISCORD_BOT_TOKEN && !process.env.DISCORD_TOKEN && !process.env.BOT_TOKEN && process.env.DISCORD_BOTTOKEN) {
+  console.warn('[bot config] Using DISCORD_BOTTOKEN fallback for bot authentication.');
+}
+
 if (!process.env.BOT_API_KEY && process.env.API_KEY) {
   console.warn('[bot config] Using API_KEY fallback for bot backend authentication.');
+}
+
+if (!process.env.BOT_API_KEY && !process.env.API_KEY && process.env.bot_api_key) {
+  console.warn('[bot config] Using lowercase bot_api_key fallback for bot backend authentication.');
 }
 
 if (!process.env.BOT_API_KEY && !process.env.API_KEY && process.env.BACKEND_API_KEY) {
