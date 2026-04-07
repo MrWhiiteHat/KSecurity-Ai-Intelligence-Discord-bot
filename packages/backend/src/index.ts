@@ -39,6 +39,12 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 async function start() {
+  console.log('[backend] Startup context:', {
+    appService: process.env.APP_SERVICE || null,
+    railwayServiceName: process.env.RAILWAY_SERVICE_NAME || null,
+    nodeEnv: config.nodeEnv,
+  });
+
   app.listen(config.port, '0.0.0.0', () => {
     console.log(`Backend API running on 0.0.0.0:${config.port} (NODE_ENV=${config.nodeEnv})`);
   });
