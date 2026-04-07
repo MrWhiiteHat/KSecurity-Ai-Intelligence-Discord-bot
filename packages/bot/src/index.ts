@@ -43,6 +43,8 @@ healthServer.listen(config.healthPort, '0.0.0.0', () => {
 console.log('[bot] Intent configuration:', {
   enableMessageContentIntent: config.enableMessageContentIntent,
   enableGuildMembersIntent: config.enableGuildMembersIntent,
+  hasToken: Boolean(config.token),
+  hasApiKey: Boolean(config.apiKey),
 });
 
 const client = new Client({
@@ -95,7 +97,7 @@ client.on('warn', (message) => {
 });
 
 if (!config.token) {
-  console.error('[bot] DISCORD_BOT_TOKEN is missing; bot will stay in health-only mode.');
+  console.error('[bot] No Discord token found (checked DISCORD_BOT_TOKEN, DISCORD_TOKEN, BOT_TOKEN, TOKEN); bot will stay in health-only mode.');
 } else {
   client.login(config.token).catch((error) => {
     console.error('[bot] Failed to login to Discord. Check token and privileged intents:', error);
