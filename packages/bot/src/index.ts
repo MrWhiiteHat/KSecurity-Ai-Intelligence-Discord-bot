@@ -97,7 +97,7 @@ client.on('warn', (message) => {
 });
 
 if (!config.token) {
-  console.error('[bot] No Discord token found (checked DISCORD_BOT_TOKEN, DISCORD_TOKEN, BOT_TOKEN, TOKEN); bot will stay in health-only mode.');
+  console.error('[bot] No Discord token found after explicit and inferred env checks; bot will stay in health-only mode.');
 } else {
   client.login(config.token).catch((error) => {
     console.error('[bot] Failed to login to Discord. Check token and privileged intents:', error);
