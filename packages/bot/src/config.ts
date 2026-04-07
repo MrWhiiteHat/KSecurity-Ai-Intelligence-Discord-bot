@@ -43,6 +43,10 @@ type InferredEnvValue = {
   value: string;
 };
 
+type ScoredEnvValue = InferredEnvValue & {
+  score: number;
+};
+
 function isKnownTokenKey(key: string): boolean {
   const normalized = key.toLowerCase();
   return [
@@ -70,30 +74,102 @@ function looksLikeDiscordToken(value: string): boolean {
   return token.length >= 50 && parts.length === 3;
 }
 
+function scoreDiscordTokenCandidate(key: string, value: string): number {
+  const normalizedKey = key.toLowerCase();
+  const normalizedValue = normalizeToken(value);
+
+  if (!normalizedValue) {
+    return 0;
+  }
+
+  const excludedKeyHints = [
+    'github',
+    'gitlab',
+    'npm',
+    'railway',
+    'sentry',
+    'jwt',
+    'bearer',
+    'access',
+    'refresh',
+    'session',
+    'cookie',
+    'auth',
+    'stripe',
+  ];
+
+  if (excludedKeyHints.some((hint) => normalizedKey.includes(hint))) {
+    return 0;
+  }
+
+  let score = 0;
+
+  if (looksLikeDiscordToken(normalizedValue)) {
+    score += 120;
+  }
+
+  if (normalizedKey.includes('discord') && normalizedKey.includes('token')) {
+    score += 100;
+  }
+
+  if (normalizedKey.includes('bot') && normalizedKey.includes('token')) {
+    score += 70;
+  }
+
+  if (normalizedKey.includes('discord') && normalizedKey.includes('secret')) {
+    score += 60;
+  }
+
+  if (normalizedKey.includes('token')) {
+    score += 10;
+  }
+
+  return score;
+}
+
+function getRelevantEnvKeys(max = 12): string[] {
+  const keys = Object.keys(process.env)
+    .filter((key) => {
+      const normalized = key.toLowerCase();
+      return normalized.includes('discord') || normalized.includes('token') || normalized.includes('api');
+    })
+    .sort((a, b) => a.localeCompare(b));
+
+  return keys.slice(0, max);
+}
+
 function inferDiscordTokenFromEnv(): InferredEnvValue | null {
-  const candidates: InferredEnvValue[] = [];
+  const candidates: ScoredEnvValue[] = [];
 
   for (const [rawKey, rawValue] of Object.entries(process.env)) {
     if (!rawValue || isKnownTokenKey(rawKey)) {
       continue;
     }
 
-    const key = rawKey.toLowerCase();
     const value = normalizeToken(rawValue);
     if (!value) {
       continue;
     }
 
-    const keySuggestsDiscordToken =
-      (key.includes('discord') && key.includes('token')) ||
-      (key.includes('bot') && key.includes('token'));
-
-    if (keySuggestsDiscordToken || looksLikeDiscordToken(value)) {
-      candidates.push({ key: rawKey, value });
+    const score = scoreDiscordTokenCandidate(rawKey, value);
+    if (score > 0) {
+      candidates.push({ key: rawKey, value, score });
     }
   }
 
-  return candidates.length === 1 ? candidates[0] : null;
+  if (candidates.length === 0) {
+    return null;
+  }
+
+  candidates.sort((a, b) => b.score - a.score);
+  const best = candidates[0];
+  const second = candidates[1];
+
+  if (second && second.score === best.score) {
+    return null;
+  }
+
+  return { key: best.key, value: best.value };
 }
 
 function inferBackendApiKeyFromEnv(): InferredEnvValue | null {
@@ -213,8 +289,16 @@ if (!explicitApiKey && inferredApiKey) {
 
 if (!config.token) {
   console.warn('[bot config] No Discord token found (checked known names and token-like env keys). Bot login will be skipped.');
+  const hintKeys = getRelevantEnvKeys();
+  if (hintKeys.length > 0) {
+    console.warn(`[bot config] Relevant env keys seen: ${hintKeys.join(', ')}`);
+  }
 }
 
 if (!config.apiKey) {
   console.warn('[bot config] No backend API key found (checked known names and backend-like API key env keys). Backend moderation calls will fail until configured.');
+  const hintKeys = getRelevantEnvKeys();
+  if (hintKeys.length > 0) {
+    console.warn(`[bot config] Relevant env keys seen: ${hintKeys.join(', ')}`);
+  }
 }
