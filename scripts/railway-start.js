@@ -22,7 +22,6 @@ const serviceHint = [
   process.env.APP_SERVICE,
   process.env.RAILWAY_SERVICE_NAME,
   process.env.SERVICE_NAME,
-  process.env.RAILWAY_GIT_REPO_NAME,
 ]
   .filter(Boolean)
   .join(' ')
@@ -30,14 +29,18 @@ const serviceHint = [
 
 const port = String(process.env.PORT || '3000');
 
-if (serviceHint.includes('bot')) {
-  console.log('[railway-start] Starting bot service');
-  run(process.execPath, ['packages/bot/dist/index.js']);
+if (serviceHint.includes('backend')) {
+  console.log('[railway-start] Starting backend service');
+  process.env.PORT = port;
+  run(process.execPath, ['packages/backend/safe-start.js']);
 } else if (serviceHint.includes('dash')) {
   console.log('[railway-start] Starting dashboard service');
   run(process.execPath, ['packages/dashboard/scripts/start.js']);
+} else if (serviceHint.includes('bot')) {
+  console.log('[railway-start] Starting bot service');
+  run(process.execPath, ['packages/bot/dist/index.js']);
 } else {
-  console.log('[railway-start] Starting backend service');
+  console.log('[railway-start] Service hint not found; defaulting to backend service');
   process.env.PORT = port;
   run(process.execPath, ['packages/backend/safe-start.js']);
 }
