@@ -20,6 +20,11 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
+// Fallback health response for platforms that probe root path.
+app.get('/', (_req, res) => {
+  res.status(200).send('ok');
+});
+
 // Routes
 app.use('/auth', authRouter);
 app.use('/analyze', analyzeRouter);
@@ -34,8 +39,8 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 async function start() {
-  app.listen(config.port, () => {
-    console.log(`Backend API running on port ${config.port}`);
+  app.listen(config.port, '0.0.0.0', () => {
+    console.log(`Backend API running on 0.0.0.0:${config.port}`);
   });
 
   if (!config.databaseUrl) {
