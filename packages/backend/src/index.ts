@@ -40,7 +40,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 async function start() {
   app.listen(config.port, '0.0.0.0', () => {
-    console.log(`Backend API running on 0.0.0.0:${config.port}`);
+    console.log(`Backend API running on 0.0.0.0:${config.port} (NODE_ENV=${config.nodeEnv})`);
   });
 
   if (!config.databaseUrl) {
