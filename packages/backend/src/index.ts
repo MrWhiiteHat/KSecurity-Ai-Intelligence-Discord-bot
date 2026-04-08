@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import { spawnSync } from 'child_process';
 import { config } from './config';
 import { prisma } from './db/prisma';
 import { analyzeRouter } from './routes/analyze';
@@ -38,12 +39,44 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: 'Internal server error' });
 });
 
+function ensureSchema(): void {
+  if (!config.databaseUrl) {
+    return;
+  }
+
+  console.log('[backend] Ensuring Prisma schema with db push');
+  const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  const result = spawnSync(
+    npxCommand,
+    ['prisma', 'db', 'push', '--schema=packages/backend/prisma/schema.prisma'],
+    {
+      stdio: 'inherit',
+      shell: false,
+      env: process.env,
+    }
+  );
+
+  if (result.error) {
+    console.error('[backend] Prisma db push execution failed:', result.error);
+    return;
+  }
+
+  if (result.status !== 0) {
+    console.error(`[backend] Prisma db push exited with status ${result.status}; continuing startup.`);
+    return;
+  }
+
+  console.log('[backend] Prisma schema sync complete.');
+}
+
 async function start() {
   console.log('[backend] Startup context:', {
     appService: process.env.APP_SERVICE || null,
     railwayServiceName: process.env.RAILWAY_SERVICE_NAME || null,
     nodeEnv: config.nodeEnv,
   });
+
+  ensureSchema();
 
   app.listen(config.port, '0.0.0.0', () => {
     console.log(`Backend API running on 0.0.0.0:${config.port} (NODE_ENV=${config.nodeEnv})`);
