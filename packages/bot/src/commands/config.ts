@@ -2,7 +2,7 @@ import { ChatInputCommandInteraction, SlashCommandBuilder, PermissionFlagsBits }
 import { SlashCommand } from './types';
 import { apiClient } from '../services/api';
 
-const command: SlashCommand = {
+export const configCommand: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName('config')
     .setDescription('Configure threat detection settings')
@@ -70,5 +70,5 @@ const command: SlashCommand = {
 };
 
 export function configCommands(client: any) {
-  client.commands.set(command.data.name, command);
+  client.commands.set(configCommand.data.name, configCommand);
 }

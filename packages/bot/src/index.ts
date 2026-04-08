@@ -3,6 +3,8 @@ import http from 'http';
 import { config } from './config';
 import { setupCommands } from './commands/setup';
 import { configCommands } from './commands/config';
+import { helpCommands } from './commands/help';
+import { statusCommands } from './commands/status';
 import { handleMessage } from './events/message';
 import { handleReady } from './events/ready';
 
@@ -161,6 +163,8 @@ client.commands = new Collection();
 // Register commands
 setupCommands(client);
 configCommands(client);
+helpCommands(client);
+statusCommands(client);
 console.log(`[bot] Loaded ${client.commands.size} command handler(s): ${Array.from(client.commands.keys()).sort().join(', ')}`);
 
 void checkBackendHealth();

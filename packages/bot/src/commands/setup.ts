@@ -2,7 +2,7 @@ import { Client, ChatInputCommandInteraction, SlashCommandBuilder, PermissionFla
 import { SlashCommand } from './types';
 import { apiClient } from '../services/api';
 
-const command: SlashCommand = {
+export const setupCommand: SlashCommand = {
   data: new SlashCommandBuilder()
     .setName('setup')
     .setDescription('Initialize threat detection for this server')
@@ -43,5 +43,5 @@ const command: SlashCommand = {
 };
 
 export function setupCommands(client: Client) {
-  client.commands.set(command.data.name, command);
+  client.commands.set(setupCommand.data.name, setupCommand);
 }
