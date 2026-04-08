@@ -1,4 +1,4 @@
-const { spawn } = require('child_process');
+const { spawn, spawnSync } = require('child_process');
 
 function run(command, args) {
   const child = spawn(command, args, {
@@ -18,6 +18,38 @@ function run(command, args) {
   });
 }
 
+function runBlocking(command, args) {
+  return spawnSync(command, args, {
+    stdio: 'inherit',
+    shell: false,
+    env: process.env,
+  });
+}
+
+function ensureBackendSchema() {
+  console.log('[railway-start] Ensuring backend database schema with Prisma db push');
+
+  const npxCommand = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+  const result = runBlocking(npxCommand, [
+    'prisma',
+    'db',
+    'push',
+    '--schema=packages/backend/prisma/schema.prisma',
+  ]);
+
+  if (result.error) {
+    console.error('[railway-start] Prisma db push failed to execute:', result.error);
+    return;
+  }
+
+  if (result.status !== 0) {
+    console.error(`[railway-start] Prisma db push exited with status ${result.status}. Continuing startup.`);
+    return;
+  }
+
+  console.log('[railway-start] Prisma schema is up to date.');
+}
+
 const serviceHint = [
   process.env.APP_SERVICE,
   process.env.RAILWAY_SERVICE_NAME,
@@ -31,6 +63,7 @@ const port = String(process.env.PORT || '3000');
 
 if (serviceHint.includes('backend')) {
   console.log('[railway-start] Starting backend service');
+  ensureBackendSchema();
   process.env.PORT = port;
   run(process.execPath, ['packages/backend/safe-start.js']);
 } else if (serviceHint.includes('dash')) {
