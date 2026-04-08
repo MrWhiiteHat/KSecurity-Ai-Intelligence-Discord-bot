@@ -45,7 +45,31 @@ console.log('[bot] Intent configuration:', {
   enableGuildMembersIntent: config.enableGuildMembersIntent,
   hasToken: Boolean(config.token),
   hasApiKey: Boolean(config.apiKey),
+  backendUrl: config.backendUrl,
 });
+
+async function checkBackendHealth(): Promise<void> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 4000);
+
+  try {
+    const response = await fetch(`${config.backendUrl.replace(/\/$/, '')}/health`, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      console.warn(`[bot] Backend health probe failed with status ${response.status} at ${config.backendUrl}`);
+      return;
+    }
+
+    console.log(`[bot] Backend health probe succeeded at ${config.backendUrl}`);
+  } catch (error) {
+    console.error(`[bot] Backend health probe failed at ${config.backendUrl}:`, error);
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 async function registerSlashCommands(client: Client): Promise<void> {
   if (!config.token) {
@@ -92,6 +116,8 @@ client.commands = new Collection();
 // Register commands
 setupCommands(client);
 configCommands(client);
+
+void checkBackendHealth();
 
 // Event handlers
 client.on('clientReady', async () => {
