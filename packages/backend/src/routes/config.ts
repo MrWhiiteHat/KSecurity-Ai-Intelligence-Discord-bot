@@ -12,13 +12,22 @@ const configSchema = z.object({
   deleteThreshold: z.number().min(0).max(100).optional(),
   warnThreshold: z.number().min(0).max(100).optional(),
   moderationRoleId: z.string().nullable().optional(),
+  moderationRole: z.string().nullable().optional(),
 });
 
 export const configRouter = Router();
 
 configRouter.post('/', authenticateApiKeyOrJWT, validate(configSchema), async (req, res) => {
   try {
-    const { serverId, ...updates } = req.body;
+    const {
+      serverId,
+      moderationRoleId,
+      moderationRole,
+      ...configUpdates
+    } = req.body;
+
+    const resolvedModerationRoleId =
+      moderationRoleId !== undefined ? moderationRoleId : moderationRole;
 
     await prisma.server.upsert({
       where: { discordId: serverId },
@@ -28,21 +37,21 @@ configRouter.post('/', authenticateApiKeyOrJWT, validate(configSchema), async (r
 
     const config = await prisma.config.upsert({
       where: { serverId },
-      update: updates,
+      update: configUpdates,
       create: {
         serverId,
-        aiWeight: updates.aiWeight ?? 0.5,
-        urlWeight: updates.urlWeight ?? 0.3,
-        behaviorWeight: updates.behaviorWeight ?? 0.2,
-        deleteThreshold: updates.deleteThreshold ?? 80,
-        warnThreshold: updates.warnThreshold ?? 50,
+        aiWeight: configUpdates.aiWeight ?? 0.5,
+        urlWeight: configUpdates.urlWeight ?? 0.3,
+        behaviorWeight: configUpdates.behaviorWeight ?? 0.2,
+        deleteThreshold: configUpdates.deleteThreshold ?? 80,
+        warnThreshold: configUpdates.warnThreshold ?? 50,
       },
     });
 
-    if ('moderationRoleId' in updates) {
+    if (resolvedModerationRoleId !== undefined) {
       await prisma.server.update({
         where: { discordId: serverId },
-        data: { moderationRoleId: updates.moderationRoleId },
+        data: { moderationRoleId: resolvedModerationRoleId },
       });
     }
 
