@@ -71,6 +71,52 @@ async function checkBackendHealth(): Promise<void> {
   }
 }
 
+function buildCommandPayload(client: Client): Array<any> {
+  return Array.from(client.commands.values()).map((command) => command.data.toJSON());
+}
+
+async function putWithRetry(
+  label: string,
+  operation: () => Promise<void>,
+  attempts = 3
+): Promise<boolean> {
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await operation();
+      if (attempt > 1) {
+        console.log(`[bot] ${label} succeeded on retry ${attempt}/${attempts}.`);
+      }
+      return true;
+    } catch (error) {
+      console.error(`[bot] ${label} failed on attempt ${attempt}/${attempts}:`, error);
+
+      if (attempt < attempts) {
+        const waitMs = attempt * 1000;
+        await new Promise((resolve) => setTimeout(resolve, waitMs));
+      }
+    }
+  }
+
+  return false;
+}
+
+async function registerCommandsForGuild(
+  rest: REST,
+  applicationId: string,
+  guildId: string,
+  guildName: string,
+  commandPayload: Array<any>
+): Promise<void> {
+  const label = `Guild command registration for ${guildName} (${guildId})`;
+  const registered = await putWithRetry(label, async () => {
+    await rest.put(Routes.applicationGuildCommands(applicationId, guildId), { body: commandPayload });
+  });
+
+  if (registered) {
+    console.log(`[bot] Registered ${commandPayload.length} guild command(s) for ${guildName} (${guildId}).`);
+  }
+}
+
 async function registerSlashCommands(client: Client): Promise<void> {
   if (!config.token) {
     return;
@@ -82,28 +128,27 @@ async function registerSlashCommands(client: Client): Promise<void> {
     return;
   }
 
-  const commandPayload = Array.from(client.commands.values()).map((command) => command.data.toJSON());
+  const commandPayload = buildCommandPayload(client);
   if (commandPayload.length === 0) {
     console.warn('[bot] No slash commands available to register.');
     return;
   }
 
+  const commandNames = Array.from(client.commands.keys()).sort();
+  console.log(`[bot] Registering ${commandPayload.length} slash command(s): ${commandNames.join(', ')}`);
+
   const rest = new REST({ version: '10' }).setToken(config.token);
 
-  try {
+  const globalRegistered = await putWithRetry('Global command registration', async () => {
     await rest.put(Routes.applicationCommands(applicationId), { body: commandPayload });
+  });
+
+  if (globalRegistered) {
     console.log(`[bot] Registered ${commandPayload.length} global slash command(s).`);
-  } catch (error) {
-    console.error('[bot] Failed to register global slash commands:', error);
   }
 
   for (const guild of client.guilds.cache.values()) {
-    try {
-      await rest.put(Routes.applicationGuildCommands(applicationId, guild.id), { body: commandPayload });
-      console.log(`[bot] Registered ${commandPayload.length} guild command(s) for ${guild.name} (${guild.id}).`);
-    } catch (error) {
-      console.error(`[bot] Failed to register guild commands for ${guild.name} (${guild.id}):`, error);
-    }
+    await registerCommandsForGuild(rest, applicationId, guild.id, guild.name, commandPayload);
   }
 }
 
@@ -116,6 +161,7 @@ client.commands = new Collection();
 // Register commands
 setupCommands(client);
 configCommands(client);
+console.log(`[bot] Loaded ${client.commands.size} command handler(s): ${Array.from(client.commands.keys()).sort().join(', ')}`);
 
 void checkBackendHealth();
 
@@ -129,6 +175,26 @@ client.on('clientReady', async () => {
   } catch (error) {
     console.error('[bot] Command registration failed during startup:', error);
   }
+});
+
+client.on('guildCreate', async (guild) => {
+  if (!config.token) {
+    return;
+  }
+
+  const applicationId = client.application?.id || client.user?.id;
+  if (!applicationId) {
+    console.warn(`[bot] Joined ${guild.name} (${guild.id}) but could not resolve application ID for command sync.`);
+    return;
+  }
+
+  const commandPayload = buildCommandPayload(client);
+  if (commandPayload.length === 0) {
+    return;
+  }
+
+  const rest = new REST({ version: '10' }).setToken(config.token);
+  await registerCommandsForGuild(rest, applicationId, guild.id, guild.name, commandPayload);
 });
 client.on('messageCreate', (message) => handleMessage(message, client));
 client.on('interactionCreate', async (interaction) => {
