@@ -29,17 +29,17 @@ configRouter.post('/', authenticateApiKeyOrJWT, validate(configSchema), async (r
     const resolvedModerationRoleId =
       moderationRoleId !== undefined ? moderationRoleId : moderationRole;
 
-    await prisma.server.upsert({
+    const server = await prisma.server.upsert({
       where: { discordId: serverId },
       update: {},
       create: { discordId: serverId, name: `Server ${serverId}` },
     });
 
     const config = await prisma.config.upsert({
-      where: { serverId },
+      where: { serverId: server.id },
       update: configUpdates,
       create: {
-        serverId,
+        serverId: server.id,
         aiWeight: configUpdates.aiWeight ?? 0.5,
         urlWeight: configUpdates.urlWeight ?? 0.3,
         behaviorWeight: configUpdates.behaviorWeight ?? 0.2,
@@ -64,8 +64,12 @@ configRouter.post('/', authenticateApiKeyOrJWT, validate(configSchema), async (r
 
 configRouter.get('/:serverId', authenticateApiKeyOrJWT, async (req, res) => {
   try {
-    const config = await prisma.config.findUnique({
-      where: { serverId: req.params.serverId },
+    const config = await prisma.config.findFirst({
+      where: {
+        server: {
+          discordId: req.params.serverId,
+        },
+      },
       include: { server: true },
     });
 
